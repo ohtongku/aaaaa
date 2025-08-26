@@ -183,6 +183,9 @@
   }
 
   function currentUnit() {
+    if (!state.turnOrder || state.turnOrder.length === 0) {
+      return state.heroes.find(h => h) || state.dragon;
+    }
     return getUnitById(state.turnOrder[state.currentTurnIndex]);
   }
 
@@ -409,8 +412,8 @@
     };
 
     resetUI();
-    render();
     makeTurnOrder();
+    render();
     updateTurnIndicator();
 
     // Start with the fastest unit; if it's dragon, AI acts
