@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Three Heroes vs Dragon</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>Three Heroes vs Dragon</h1>
+      <div class="controls">
+        <button id="newGameBtn" class="btn primary">New Game</button>
+        <button id="autoPlayToggle" class="btn">Auto Play: Off</button>
+      </div>
+    </header>
+
+    <main class="arena">
+      <section class="party" id="party">
+        <!-- Heroes will be rendered here -->
+      </section>
+
+      <section class="dragon" id="dragonArea">
+        <div class="unit-card boss" id="dragonCard">
+          <div class="unit-portrait dragon-portrait"></div>
+          <div class="unit-info">
+            <div class="unit-name">Elder Dragon</div>
+            <div class="healthbar" aria-label="Dragon health">
+              <div class="healthbar-fill" id="dragonHpBar"></div>
+            </div>
+            <div class="stats"><span id="dragonHpText"></span> HP</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <section class="actions" id="actions">
+      <div class="turn-indicator" id="turnIndicator">Click New Game to start</div>
+      <div class="ability-panel" id="abilityPanel">
+        <!-- Ability buttons injected here -->
+      </div>
+      <div class="target-panel" id="targetPanel" hidden>
+        <div class="panel-title">Choose a target</div>
+        <div id="targetButtons" class="target-buttons"></div>
+      </div>
+    </section>
+
+    <section class="log" id="log" aria-live="polite" aria-atomic="false">
+      <!-- Combat log -->
+    </section>
+
+    <footer class="footer">
+      <details>
+        <summary>How to play</summary>
+        <ul>
+          <li>Click New Game.</li>
+          <li>Select a hero ability, then choose a target when prompted.</li>
+          <li>Defeat the dragon before your party is wiped out.</li>
+          <li>Auto Play lets heroes choose reasonable actions automatically.</li>
+        </ul>
+      </details>
+    </footer>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
