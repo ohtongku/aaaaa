@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Three Heroes vs Dragon (Single File)</title>
+  <style>
+:root {
+  --bg: #0f1221;
+  --panel: #171b31;
+  --accent: #6ea8fe;
+  --accent-2: #8de39a;
+  --danger: #ff6b6b;
+  --text: #e5e7ef;
+  --muted: #9aa0b4;
+  --gold: #ffd166;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: radial-gradient(1200px 700px at 70% -20%, #2b2f55 0%, var(--bg) 45%);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+}
+.container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.header h1 { font-size: 22px; letter-spacing: 0.3px; margin: 0; }
+.controls .btn { margin-left: 8px; }
+.btn { background: #232744; color: var(--text); border: 1px solid #2f3358; border-radius: 8px; padding: 8px 12px; cursor: pointer; transition: transform 120ms ease, background 120ms ease, border-color 120ms ease; }
+.btn:hover { transform: translateY(-1px); background: #2a2e53; border-color: #3f4470; }
+.btn:active { transform: translateY(0); }
+.btn.primary { background: linear-gradient(180deg, #3242a8, #28348a); border-color: #3b4bd4; }
+.arena { display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
+.party { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.unit-card { background: var(--panel); border: 1px solid #242947; border-radius: 12px; display: grid; grid-template-columns: 72px 1fr; gap: 12px; padding: 12px; position: relative; overflow: hidden; }
+.unit-card.boss { grid-column: 1 / -1; display: grid; grid-template-columns: 120px 1fr; }
+.unit-portrait { width: 72px; height: 72px; border-radius: 10px; background: linear-gradient(135deg, #3a3f6b, #2a2f54); border: 1px solid #2f355e; }
+.dragon-portrait { width: 120px; height: 120px; border-radius: 12px; background: linear-gradient(135deg, #8a2d2d, #551d1d); border-color: #6a2626; }
+.unit-info { display: grid; align-content: center; gap: 8px; }
+.unit-name { font-weight: 700; letter-spacing: 0.3px; }
+.stats { font-size: 12px; color: var(--muted); }
+.healthbar { width: 100%; height: 12px; background: #202448; border: 1px solid #2d3260; border-radius: 999px; overflow: hidden; }
+.healthbar-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #28c76f, #1fa25a); transition: width 220ms ease; }
+.healthbar-fill.low { background: linear-gradient(90deg, var(--danger), #ee5253); }
+.actions { margin-top: 16px; background: var(--panel); border: 1px solid #242947; border-radius: 12px; padding: 12px; }
+.turn-indicator { margin-bottom: 8px; color: var(--gold); }
+.ability-panel { display: flex; flex-wrap: wrap; gap: 8px; }
+.ability-btn { padding: 8px 10px; border-radius: 8px; border: 1px solid #38407c; background: #252a54; color: #e8ebff; cursor: pointer; }
+.ability-btn.support { border-color: #3e7a4f; background: #1e3a2a; }
+.ability-btn.disabled { opacity: 0.45; cursor: not-allowed; }
+.target-panel { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #33395f; }
+.target-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.target-btn { padding: 6px 10px; border-radius: 6px; border: 1px solid #5c2e2e; background: #3a1f1f; color: #ffd7d7; cursor: pointer; }
+.log { margin-top: 16px; background: #0e1022; border: 1px solid #1e2246; border-radius: 12px; padding: 12px; max-height: 220px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 13px; }
+.log-entry { margin: 0 0 6px 0; }
+.log-entry .dmg { color: var(--danger); }
+.log-entry .heal { color: var(--accent-2); }
+.log-entry .buff { color: var(--accent); }
+.footer { margin-top: 16px; color: var(--muted); }
+@keyframes pop { 0% { transform: scale(1);} 40% { transform: scale(1.06);} 100% { transform: scale(1);} }
+.pop { animation: pop 260ms ease; }
+@media (max-width: 860px) { .arena { grid-template-columns: 1fr; } .unit-card.boss { grid-template-columns: 84px 1fr; } .dragon-portrait { width: 84px; height: 84px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>Three Heroes vs Dragon</h1>
+      <div class="controls">
+        <button id="newGameBtn" class="btn primary">New Game</button>
+        <button id="autoPlayToggle" class="btn">Auto Play: Off</button>
+      </div>
+    </header>
+    <main class="arena">
+      <section class="party" id="party"></section>
+      <section class="dragon" id="dragonArea">
+        <div class="unit-card boss" id="dragonCard">
+          <div class="unit-portrait dragon-portrait"></div>
+          <div class="unit-info">
+            <div class="unit-name">Elder Dragon</div>
+            <div class="healthbar" aria-label="Dragon health">
+              <div class="healthbar-fill" id="dragonHpBar"></div>
+            </div>
+            <div class="stats"><span id="dragonHpText"></span> HP</div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <section class="actions" id="actions">
+      <div class="turn-indicator" id="turnIndicator">Click New Game to start</div>
+      <div class="ability-panel" id="abilityPanel"></div>
+      <div class="target-panel" id="targetPanel" hidden>
+        <div class="panel-title">Choose a target</div>
+        <div id="targetButtons" class="target-buttons"></div>
+      </div>
+    </section>
+    <section class="log" id="log" aria-live="polite" aria-atomic="false"></section>
+    <footer class="footer">
+      <details>
+        <summary>How to play</summary>
+        <ul>
+          <li>Click New Game.</li>
+          <li>Select an ability, then choose a target.</li>
+          <li>Defeat the dragon before your party is wiped out.</li>
+          <li>Auto Play lets heroes act automatically.</li>
+        </ul>
+      </details>
+    </footer>
+  </div>
+  <script>
+(function() {
+  "use strict";
+  const HEROES_PRESET = [
+    { id: "warrior", name: "Warrior", maxHp: 120, hp: 120, atk: 18, def: 6, speed: 8, role: "tank" },
+    { id: "mage", name: "Mage", maxHp: 80, hp: 80, atk: 26, def: 2, speed: 12, role: "dps" },
+    { id: "cleric", name: "Cleric", maxHp: 90, hp: 90, atk: 12, def: 3, speed: 10, role: "support" },
+  ];
+  const DRAGON_PRESET = { id: "dragon", name: "Elder Dragon", maxHp: 300, hp: 300, atk: 22, def: 5, speed: 9, role: "boss" };
+  const ABILITIES = {
+    warrior: [
+      { key: "slash", name: "Slash", type: "attack", power: 1.0, target: "enemy" },
+      { key: "shield", name: "Guard", type: "buff", buff: { def: +4 }, duration: 2, target: "self" },
+      { key: "taunt", name: "Taunt", type: "status", status: { taunt: true }, duration: 1, target: "enemy" },
+    ],
+    mage: [
+      { key: "bolt", name: "Arcane Bolt", type: "attack", power: 1.2, target: "enemy" },
+      { key: "fire", name: "Fireball", type: "attack", power: 1.6, target: "enemy", cooldown: 2 },
+      { key: "focus", name: "Focus", type: "buff", buff: { atk: +8 }, duration: 2, target: "self" },
+    ],
+    cleric: [
+      { key: "smite", name: "Smite", type: "attack", power: 0.9, target: "enemy" },
+      { key: "heal", name: "Heal", type: "heal", power: 1.0, target: "ally" },
+      { key: "bless", name: "Bless", type: "buff", buff: { def: +3 }, duration: 3, target: "ally" },
+    ],
+    dragon: [
+      { key: "claw", name: "Claw Swipe", type: "attack", power: 1.0, target: "enemy" },
+      { key: "flame", name: "Flame Breath", type: "attack", power: 1.4, target: "party", cooldown: 2 },
+      { key: "scales", name: "Harden Scales", type: "buff", buff: { def: +3 }, duration: 2, target: "self", cooldown: 3 },
+    ],
+  };
+  let state = { heroes: [], dragon: null, turnOrder: [], currentTurnIndex: 0, cooldowns: {}, statuses: {}, buffs: {}, autoPlay: false, phase: "idle" };
+  const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+  const isAlive = (u) => u.hp > 0;
+  const getUnitById = (id) => state.heroes.find(h => h.id === id) || (state.dragon && state.dragon.id === id ? state.dragon : null);
+  const getEffectiveStat = (unit, stat) => { const buffs = state.buffs[unit.id] || {}; return (unit[stat] || 0) + (buffs[stat] || 0); };
+  const rng = (min, max) => Math.random() * (max - min) + min;
+  function log(messageHtml) { const el = document.createElement("div"); el.className = "log-entry"; el.innerHTML = messageHtml; document.getElementById("log").prepend(el); }
+  function resetUI() { document.getElementById("party").innerHTML = ""; document.getElementById("abilityPanel").innerHTML = ""; document.getElementById("targetButtons").innerHTML = ""; document.getElementById("targetPanel").hidden = true; document.getElementById("log").innerHTML = ""; }
+  function render() { const partyEl = document.getElementById("party"); partyEl.innerHTML = ""; state.heroes.forEach(h => { const card = document.createElement("div"); card.className = "unit-card" + (isAlive(h) ? "" : " defeated"); card.dataset.unitId = h.id; card.innerHTML = `<div class="unit-portrait"></div><div class="unit-info"><div class="unit-name">${h.name}</div><div class="healthbar"><div class="healthbar-fill" id="hp-${h.id}"></div></div><div class="stats"><span id="hp-text-${h.id}"></span> HP</div></div>`; partyEl.appendChild(card); }); updateBars(); renderAbilities(); }
+  function updateBars() { state.heroes.forEach(h => { const hpPct = (h.hp / h.maxHp) * 100; const bar = document.getElementById(`hp-${h.id}`); const txt = document.getElementById(`hp-text-${h.id}`); if (bar) { bar.style.width = clamp(hpPct, 0, 100) + "%"; bar.classList.toggle("low", hpPct <= 30); bar.classList.add("pop"); setTimeout(() => bar.classList.remove("pop"), 280); } if (txt) txt.textContent = `${Math.max(0, Math.floor(h.hp))}/${h.maxHp}`; }); const d = state.dragon; const dPct = (d.hp / d.maxHp) * 100; const dBar = document.getElementById("dragonHpBar"); const dTxt = document.getElementById("dragonHpText"); if (dBar) { dBar.style.width = clamp(dPct, 0, 100) + "%"; dBar.classList.toggle("low", dPct <= 30); dBar.classList.add("pop"); setTimeout(() => dBar.classList.remove("pop"), 280); } if (dTxt) dTxt.textContent = `${Math.max(0, Math.floor(d.hp))}/${d.maxHp}`; }
+  function calcDamage(attacker, defender, power) { const atk = getEffectiveStat(attacker, "atk"); const def = getEffectiveStat(defender, "def"); const base = atk * power - def * 0.5; const variance = rng(0.85, 1.15); const raw = Math.max(1, Math.floor(base * variance)); return raw; }
+  function applyHeal(target, amount) { const healed = Math.min(target.maxHp - target.hp, Math.floor(amount)); target.hp = clamp(target.hp + healed, 0, target.maxHp); updateBars(); log(`<span class="heal">${target.name} heals ${healed}</span>`); }
+  function applyDamage(attacker, defender, amount, label) { defender.hp = clamp(defender.hp - amount, 0, defender.maxHp); updateBars(); log(`<span class="dmg">${attacker.name} ${label || "hits"} ${defender.name} for ${amount}</span>`); }
+  function endTurnAdvance() { Object.keys(state.cooldowns).forEach(key => { state.cooldowns[key] = Math.max(0, state.cooldowns[key] - 1); }); let attempts = 0; do { state.currentTurnIndex = (state.currentTurnIndex + 1) % state.turnOrder.length; attempts += 1; } while (attempts < state.turnOrder.length && !isAlive(getUnitById(state.turnOrder[state.currentTurnIndex]))); checkEndConditions(); renderAbilities(); updateTurnIndicator(); if (state.autoPlay && state.phase === "running") { setTimeout(aiAct, 450); } }
+  function makeTurnOrder() { const units = [...state.heroes, state.dragon]; units.sort((a, b) => getEffectiveStat(b, "speed") - getEffectiveStat(a, "speed")); state.turnOrder = units.map(u => u.id); state.currentTurnIndex = 0; }
+  function currentUnit() { if (!state.turnOrder || state.turnOrder.length === 0) { return state.heroes.find(h => h) || state.dragon; } return getUnitById(state.turnOrder[state.currentTurnIndex]); }
+  function checkEndConditions() { if (!isAlive(state.dragon)) { state.phase = "victory"; log(`<strong>Victory!</strong> The dragon is defeated.`); updateTurnIndicator(); document.getElementById("abilityPanel").innerHTML = ""; return true; } const anyHeroAlive = state.heroes.some(isAlive); if (!anyHeroAlive) { state.phase = "defeat"; log(`<strong>Defeat...</strong> The party has fallen.`); updateTurnIndicator(); document.getElementById("abilityPanel").innerHTML = ""; return true; } return false; }
+  function updateTurnIndicator() { const unit = currentUnit(); const ti = document.getElementById("turnIndicator"); if (state.phase !== "running") { ti.textContent = state.phase === "idle" ? "Click New Game to start" : state.phase === "victory" ? "Victory" : "Defeat"; return; } ti.textContent = `${unit.name}'s turn`; }
+  function renderAbilities() { const panel = document.getElementById("abilityPanel"); panel.innerHTML = ""; document.getElementById("targetPanel").hidden = true; if (state.phase !== "running") return; const unit = currentUnit(); const isHero = state.heroes.some(h => h.id === unit.id); if (!isHero) { panel.innerHTML = `<em>Dragon is thinking...</em>`; setTimeout(aiAct, 450); return; } const unitAbilities = ABILITIES[unit.id] || []; unitAbilities.forEach(ability => { const btn = document.createElement("button"); btn.className = "ability-btn" + (ability.type === "heal" || ability.target === "ally" || ability.type === "buff" ? " support" : ""); btn.textContent = ability.name + (isOnCooldown(unit, ability) ? ` (${getCooldown(unit, ability)}t)` : ""); if (isOnCooldown(unit, ability)) btn.classList.add("disabled"); btn.disabled = isOnCooldown(unit, ability); btn.addEventListener("click", () => onChooseAbility(unit, ability)); panel.appendChild(btn); }); }
+  function cdKey(unit, ability) { return `${unit.id}:${ability.key}`; }
+  function isOnCooldown(unit, ability) { return (ability.cooldown || 0) > 0 && (state.cooldowns[cdKey(unit, ability)] || 0) > 0; }
+  function getCooldown(unit, ability) { return state.cooldowns[cdKey(unit, ability)] || 0; }
+  function setCooldown(unit, ability) { if ((ability.cooldown || 0) > 0) state.cooldowns[cdKey(unit, ability)] = ability.cooldown + 1; }
+  function onChooseAbility(unit, ability) { const targetType = ability.target; if (targetType === "self") { resolveAction(unit, unit, ability); return; } const targetPanel = document.getElementById("targetPanel"); const buttons = document.getElementById("targetButtons"); buttons.innerHTML = ""; let candidates = []; if (targetType === "enemy") { candidates = [state.dragon].filter(isAlive); } else if (targetType === "ally") { candidates = state.heroes.filter(isAlive); } else if (targetType === "party") { resolveAction(unit, null, ability); return; } candidates.forEach(c => { const b = document.createElement("button"); b.className = "target-btn"; b.textContent = c.name; b.addEventListener("click", () => { targetPanel.hidden = true; resolveAction(unit, c, ability); }); buttons.appendChild(b); }); targetPanel.hidden = candidates.length === 0; }
+  function resolveAction(actor, target, ability) { if (state.phase !== "running") return; if (ability.type === "attack") { if (ability.target === "party") { state.heroes.filter(isAlive).forEach(h => { const dmg = calcDamage(state.dragon, h, ability.power); applyDamage(state.dragon, h, dmg, ability.name); }); } else { const dmg = calcDamage(actor, target, ability.power); applyDamage(actor, target, dmg, ability.name); } } else if (ability.type === "heal") { const healAmount = getEffectiveStat(actor, "atk") * ability.power; applyHeal(target, healAmount); } else if (ability.type === "buff") { const buffs = state.buffs[target.id] || {}; Object.keys(ability.buff || {}).forEach(k => { buffs[k] = (buffs[k] || 0) + ability.buff[k]; }); state.buffs[target.id] = buffs; const durKey = `dur:${target.id}:${ability.key}:${Date.now()}`; state.cooldowns[durKey] = (ability.duration || 1) + 1; log(`<span class="buff">${actor.name} uses ${ability.name} on ${target.name}</span>`); } else if (ability.type === "status") { const st = state.statuses[target.id] || {}; Object.assign(st, ability.status || {}); state.statuses[target.id] = st; const durKey = `dur:${target.id}:${ability.key}:${Date.now()}`; state.cooldowns[durKey] = (ability.duration || 1) + 1; log(`<span class="buff">${actor.name} inflicts ${ability.name} on ${target.name}</span>`); } setCooldown(actor, ability); if (checkEndConditions()) return; endTurnAdvance(); }
+  function aiChooseAbility(unit) { const abilities = ABILITIES[unit.id] || []; const available = abilities.filter(a => !isOnCooldown(unit, a)); if (!available.length) return abilities[0]; if (unit.id === "dragon") { const aliveHeroes = state.heroes.filter(isAlive); if (aliveHeroes.length >= 2) { const flame = available.find(a => a.key === "flame"); if (flame) return flame; } return available.find(a => a.key === "claw") || available[0]; }
+    if (unit.id === "cleric") { const allyLow = state.heroes.find(h => isAlive(h) && h.hp / h.maxHp < 0.6); if (allyLow) { const heal = available.find(a => a.key === "heal"); if (heal) return heal; } return available.find(a => a.key === "smite") || available[0]; }
+    if (unit.id === "warrior") { const taunt = available.find(a => a.key === "taunt"); if (taunt && Math.random() < 0.3) return taunt; return available.find(a => a.key === "slash") || available[0]; }
+    if (unit.id === "mage") { return available.find(a => a.key === "fire") || available.find(a => a.key === "bolt") || available[0]; }
+    return available[0]; }
+  function aiChooseTarget(unit, ability) { if (ability.target === "self") return unit; if (ability.target === "party") return null; if (unit.id === "dragon") { const taunted = state.heroes.find(h => isAlive(h) && (state.statuses[h.id] && state.statuses[h.id].taunt)); if (taunted) return taunted; const priority = state.heroes.filter(isAlive).sort((a, b) => a.role === "support" ? -1 : 1); return priority[0] || state.heroes.find(isAlive); } else { if (ability.target === "ally") { const ally = state.heroes.filter(isAlive).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0]; return ally || state.heroes[0]; } return state.dragon; } }
+  function aiAct() { if (state.phase !== "running") return; const unit = currentUnit(); const ability = aiChooseAbility(unit); const target = aiChooseTarget(unit, ability); resolveAction(unit, target, ability); }
+  function startNewGame() { state = { heroes: JSON.parse(JSON.stringify(HEROES_PRESET)), dragon: JSON.parse(JSON.stringify(DRAGON_PRESET)), turnOrder: [], currentTurnIndex: 0, cooldowns: {}, statuses: {}, buffs: {}, autoPlay: state.autoPlay || false, phase: "running" }; resetUI(); makeTurnOrder(); render(); updateTurnIndicator(); renderAbilities(); if (currentUnit().id === "dragon") { setTimeout(aiAct, 450); } }
+  function toggleAutoPlay() { state.autoPlay = !state.autoPlay; document.getElementById("autoPlayToggle").textContent = `Auto Play: ${state.autoPlay ? "On" : "Off"}`; if (state.autoPlay && state.phase === "running") { setTimeout(aiAct, 300); } }
+  function init() { document.getElementById("newGameBtn").addEventListener("click", startNewGame); document.getElementById("autoPlayToggle").addEventListener("click", toggleAutoPlay); const dBar = document.getElementById("dragonHpBar"); if (dBar) dBar.style.width = "100%"; document.getElementById("dragonHpText").textContent = `${DRAGON_PRESET.maxHp}/${DRAGON_PRESET.maxHp}`; }
+  window.addEventListener("DOMContentLoaded", init);
+})();
+  </script>
+</body>
+</html>
